@@ -1,0 +1,2 @@
+imgs_dir : "./users/"
+device: "cuda"
