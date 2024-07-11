@@ -14,7 +14,8 @@ from face import upload_users, detect_user
 from time import sleep
 import PIL
 import numpy as np
-
+import torch
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from util import load_config
 
 config = load_config()
@@ -33,6 +34,10 @@ class Login(FramelessWindow, Main_Window):
         # Start the camera initialization in a separate thread
         self.camera_thread = threading.Thread(target=self.initialize_camera)
         self.camera_thread.start()
+
+        self.model_thread = threading.Thread(target=self.initialize_model)
+        self.model_thread.start()
+
 
         self.Addbijin()
         self.AddLogo()
@@ -62,12 +67,28 @@ class Login(FramelessWindow, Main_Window):
     def initialize_camera(self):
         self.cap = cv2.VideoCapture(0)
         sleep(2)  # Add a small delay to ensure the camera is initialized
+    def initialize_model(self):
+        config = load_config()
+        device = config["device"]
+        # 设置设备
+        self.device = torch.device(device)
+
+        # 定义MTCNN进行人脸检测
+        self.mtcnn = MTCNN(
+            image_size=160, margin=0, min_face_size=20,
+            thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
+            device=device
+        )
+
+        # 定义Facenet模型
+        self.resnet = InceptionResnetV1(pretrained="vggface2").to(device)
+        self.resnet.eval()
     def on_button1_click(self):
         self.stop_detection.clear()
         self.detect_user_and_display()
 
     def on_button2_click(self):
-        upload_users()
+        upload_users(self.mtcnn,self.resnet,self.device)
 
     def stopCamera(self):
         self.stop_detection.set()
@@ -77,7 +98,7 @@ class Login(FramelessWindow, Main_Window):
             self.cap = None
     
     def run_detection(self):
-            for frame, matched_name in detect_user():
+            for frame, matched_name in detect_user(self.mtcnn,self.resnet,self.device):
                 if self.stop_detection.is_set():
                     break
                 self.update_label(frame, matched_name)
@@ -127,7 +148,7 @@ class window_1(FramelessWindow, Window_1):
         
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
-                # Start the camera initialization in a separate thread
+        # Start the camera initialization in a separate thread
         self.camera_thread = threading.Thread(target=self.initialize_camera)
         self.camera_thread.start()
 

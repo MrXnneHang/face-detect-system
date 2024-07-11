@@ -1,5 +1,5 @@
 imgs_dir : "./users/"
-device: "cuda"
+device: "cpu"
 bg1: "./img/img1.jpg"
 bg2: "./img/img2.jpg"
 logo: "./img/logo.jpg"
