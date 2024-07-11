@@ -78,11 +78,11 @@ python demo.py
 
 主窗口:
 
-![Snipaste_2024-07-11_20-15-23](https://image.baidu.com/search/down?url=https://img1.doubanio.com/view/photo/l/public/p2910501358.webp)
+![fig1](https://github.com/MrXnneHang/face-detect-system/blob/master/img/fig1.jpeg)
 
 录入窗口:
 
-![Snipaste_2024-07-11_20-16-06](https://image.baidu.com/search/down?url=https://img1.doubanio.com/view/photo/l/public/p2910501360.webp)
+![fig2](https://github.com/MrXnneHang/face-detect-system/blob/master/img/fig2.jpeg)
 
 **注意**你每次删除和录入人员，都需要**点击更新模型才会生效**。
 
