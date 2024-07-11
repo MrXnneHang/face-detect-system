@@ -24,10 +24,11 @@ class Login(FramelessWindow, Main_Window):
         self.Button1.clicked.connect(self.on_button1_click)
         self.Button4.clicked.connect(self.on_button2_click)
         self.stop_detection = threading.Event()
-        # self.camera = cv2.VideoCapture(0)
         self.cap = None
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(self.update_frame)
+        # Start the camera initialization in a separate thread
+        self.camera_thread = threading.Thread(target=self.initialize_camera)
+        self.camera_thread.start()
+
         self.Addbijin()
         self.AddLogo()
     def Addbijin(self):
@@ -41,6 +42,7 @@ class Login(FramelessWindow, Main_Window):
         q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         self.Image_label.setPixmap(pixmap)
+
     def AddLogo(self):
         self.img = PIL.Image.open("./img/logo.jpg")
         self.img = self.img.resize((108,108))
@@ -52,6 +54,9 @@ class Login(FramelessWindow, Main_Window):
         q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         self.logo.setPixmap(pixmap)
+    def initialize_camera(self):
+        self.cap = cv2.VideoCapture(0)
+        sleep(2)  # Add a small delay to ensure the camera is initialized
     def on_button1_click(self):
         self.stop_detection.clear()
         self.detect_user_and_display()
@@ -67,7 +72,6 @@ class Login(FramelessWindow, Main_Window):
             self.cap = None
     
     def run_detection(self):
-            self.cap = cv2.VideoCapture(0)
             for frame, matched_name in detect_user():
                 if self.stop_detection.is_set():
                     break
@@ -118,6 +122,9 @@ class window_1(FramelessWindow, Window_1):
         
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
+                # Start the camera initialization in a separate thread
+        self.camera_thread = threading.Thread(target=self.initialize_camera)
+        self.camera_thread.start()
 
 
     def Close(self):
@@ -143,10 +150,12 @@ class window_1(FramelessWindow, Window_1):
         # 重命名文件
         os.rename(original_path, new_path)
         self.label_1.setText("录入成功！")
+    
+    def initialize_camera(self):
+        self.camera = cv2.VideoCapture(0)
+        sleep(2)  # Add a small delay to ensure the camera is initialized
 
     def start_camera(self):
-        self.camera = cv2.VideoCapture(0)
-        sleep(0.5)
         self.timer.start(20)  # 以大约50fps的速度更新画面
 
     def update_frame(self):
