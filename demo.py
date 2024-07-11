@@ -10,13 +10,16 @@ from PyQt5.QtWidgets import QApplication, QWidget
 from mainwindow import Main_Window
 from window_1 import Window_1
 from delete_window import Delete_window
-from face import upload_users, detect_user
 from time import sleep
 import PIL
 import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from util import load_config
+from util import load_config, read_userdata_from_path, custom_round, read_users_from_database
+from insert import insert
+from datetime import datetime
+from time import sleep
 
 config = load_config()
 
@@ -31,12 +34,14 @@ class Login(FramelessWindow, Main_Window):
         self.Button4.clicked.connect(self.on_button2_click)
         self.stop_detection = threading.Event()
         self.cap = None
+        self.resnet = None
         # Start the camera initialization in a separate thread
         self.camera_thread = threading.Thread(target=self.initialize_camera)
         self.camera_thread.start()
 
         self.model_thread = threading.Thread(target=self.initialize_model)
         self.model_thread.start()
+        self.alreay_open = False
 
 
         self.Addbijin()
@@ -88,7 +93,7 @@ class Login(FramelessWindow, Main_Window):
         self.detect_user_and_display()
 
     def on_button2_click(self):
-        upload_users(self.mtcnn,self.resnet,self.device)
+        self.upload_users()
 
     def stopCamera(self):
         self.stop_detection.set()
@@ -98,12 +103,18 @@ class Login(FramelessWindow, Main_Window):
             self.cap = None
     
     def run_detection(self):
-            for frame, matched_name in detect_user(self.mtcnn,self.resnet,self.device):
+            for frame, matched_name in self.detect_user():
                 if self.stop_detection.is_set():
                     break
                 self.update_label(frame, matched_name)
     def detect_user_and_display(self):
-        threading.Thread(target=self.run_detection).start()
+        if not self.alreay_open:
+            threading.Thread(target=self.run_detection).start()
+            self.alreay_open = True
+        else:
+            print("已经在运行了。")
+            pass
+
 
     def update_label(self, frame, matched_name):
         rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -122,35 +133,137 @@ class Login(FramelessWindow, Main_Window):
         event.accept()
 
     def showWindow1(self):
-        if self.cap:
-            self.stopCamera()
-            sleep(0.2)
-        w_1 = window_1()
+        # if self.cap:
+        #     self.stopCamera()
+        #     sleep(0.2)
+        w_1 = window_1(self.cap)
         w_1.show()
 
     def showWindow2(self):
-        if self.cap:
-            self.stopCamera()
-            sleep(0.2)
 
         w_2 = delete_window()
         w_2.show()
+    def wait_load_model(self):
+        while True:
+            if self.resnet is not None:
+                break
+            else:
+                sleep(0.2)
+                print("等待模型加载..")
+    def wait_camera(self):
+        while True:
+            if self.cap:
+                break
+            else:
+                sleep(0.2)
+                print("等待摄像头打开..")
+    def upload_users(self):
+        self.wait_load_model()
+        users = []
+        user_data = []
+        config = load_config()
+        imgs_dir = config["imgs_dir"]
+        imgs = os.listdir(imgs_dir)
+        imgs = [img for img in imgs if ".jpg" in img]
+        img_paths = [os.path.join(imgs_dir, img) for img in imgs]
+        for img_path in img_paths:
+            img = Image.open(img_path)
+            img = self.mtcnn(img)
+            img = img.unsqueeze(0).to(self.device)
+            feature = self.resnet(img)
+            feature = feature.cpu().detach().numpy()
+            feature = [custom_round(float(f)) for f in feature[0]]
+            user_data = read_userdata_from_path(img_path)
+            user_data.append(feature)
+            user_data = tuple(user_data)
+            users.append(user_data)
+
+        insert(users)
+        return tuple(user_data)
+
+
+    def detect_user(self):
+        self.wait_load_model()
+        users = read_users_from_database()
+        data_features = [torch.tensor(users[i]["features"]).to(self.device) for i in range(len(users))]
+
+        while True:
+            self.wait_camera()
+            ret, frame = self.cap.read()
+            if not ret:
+                print("Failed to grab frame")
+                break
+
+            img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(img)
+            imgs = self.mtcnn(pil_img)
+            landmarks, _, _ = self.mtcnn.detect(pil_img, landmarks=True)
+            box = 0
+            flag = 0
+            matched_name = ""
+
+            if imgs is not None:
+                imgs = imgs.unsqueeze(0).to(self.device)
+                features = [self.resnet(face.unsqueeze(0)) for face in imgs]
+                
+
+                for i, feature in enumerate(features):
+                    no_match = 0
+                    for index, data_feature in enumerate(data_features):
+                        similarity = torch.dist(feature, data_feature, p=2)
+                        print(similarity)
+                        if similarity < 0.78:
+                            matched_name = users[index]["name"]
+                            print("发现匹配人员:", matched_name, similarity)
+                            current_time = datetime.now()
+                            print("发现时间:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+                            frame_box = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+                            landmark = landmarks[i]
+                            x1, y1, x2, y2 = landmark[:4].astype(int)
+                            cv2.rectangle(frame_box, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            box = frame_box
+                            flag = 1
+                        else:
+                            no_match += 1
+                            frame_box = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+                            landmark = landmarks[i]
+                            x1, y1, x2, y2 = landmark[:4].astype(int)
+                            cv2.rectangle(frame_box, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            box = frame_box
+                            flag = 1
+                        if no_match == len(data_features):
+                            matched_name = "没有找到这个人员。"
+                            print(matched_name)
+                    if len(data_features) == 0:
+                        print("没有找到这个人")
+                        matched_name = "没有找到这个人员。"
+
+                        
+
+            if flag == 0:
+                yield frame, matched_name
+            else:
+                yield box, matched_name
+
+        # self.cap.release()
+        cv2.destroyAllWindows()
+
 
 class window_1(FramelessWindow, Window_1):
-    def __init__(self):
+    def __init__(self,cap):
         super().__init__()
         self.setupUi(self)
         self.pushButton_4.clicked.connect(self.Close)
         self.pushButton_2.clicked.connect(self.start_camera)
         self.pushButton_1.clicked.connect(self.take_photo)
         self.pushButton_3.clicked.connect(self.change_name)
-        self.camera = None
+        self.camera = cap
         
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
         # Start the camera initialization in a separate thread
-        self.camera_thread = threading.Thread(target=self.initialize_camera)
-        self.camera_thread.start()
+        # self.camera_thread = threading.Thread(target=self.initialize_camera)
+        # self.camera_thread.start()
 
 
     def Close(self):
@@ -159,7 +272,8 @@ class window_1(FramelessWindow, Window_1):
         self.show()
 
     def change_name(self):
-
+        self.take_photo()
+        
         test_1 = self.lineEdit_1.text()
         test_2 = self.lineEdit_2.text()
 
@@ -185,6 +299,12 @@ class window_1(FramelessWindow, Window_1):
         self.timer.start(20)  # 以大约50fps的速度更新画面
 
     def update_frame(self):
+        while True:
+            if self.camera:
+                break
+            else:
+                sleep(0.2)
+                print("等待摄像头打开...")
         ret, frame = self.camera.read()
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -202,8 +322,8 @@ class window_1(FramelessWindow, Window_1):
 
     def closeEvent(self, event):
         self.timer.stop()
-        if self.camera:
-            self.camera.release()
+        # if self.camera:
+        #     self.camera.release()
         super().closeEvent(event)
 
 class delete_window(FramelessWindow, Delete_window):
@@ -247,10 +367,10 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     m = Login()
-    w_1 = window_1()
-    w_2 = delete_window()
-    m.setWindowIcon(QIcon("./img/logo.jpg"))
-
+    m.wait_load_model()
+    m.wait_camera()
+    m.setWindowIcon(QIcon(config["logo"]))
     m.show()
+    
 
     app.exec_()

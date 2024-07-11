@@ -7,7 +7,7 @@ from PIL import Image
 from datetime import datetime
 from util import load_config, read_userdata_from_path, custom_round, read_users_from_database
 from insert import insert
-
+from time import sleep
 
 
 
@@ -35,12 +35,17 @@ def upload_users(mtcnn,resnet,device):
     return tuple(user_data)
 
 
-def detect_user(mtcnn,resnet,device):
+def detect_user(mtcnn,resnet,device,cap):
     users = read_users_from_database()
     data_features = [torch.tensor(users[i]["features"]).to(device) for i in range(len(users))]
-    cap = cv2.VideoCapture(0)
 
     while True:
+        # while True:
+        #     if cap:
+        #         break
+        #     else:
+        #         sleep(0.2)
+        #         print("等待摄像头")
         ret, frame = cap.read()
         if not ret:
             print("Failed to grab frame")
