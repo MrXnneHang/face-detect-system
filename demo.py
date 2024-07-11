@@ -14,6 +14,11 @@ from face import upload_users, detect_user
 from time import sleep
 import PIL
 import numpy as np
+
+from util import load_config
+
+config = load_config()
+
 class Login(FramelessWindow, Main_Window):
     def __init__(self):
         super().__init__()
@@ -32,7 +37,7 @@ class Login(FramelessWindow, Main_Window):
         self.Addbijin()
         self.AddLogo()
     def Addbijin(self):
-        self.img = PIL.Image.open("./img/img.jpg")
+        self.img = PIL.Image.open(config["bg1"])
         self.img = self.img.resize((521, 391))
         self.img = np.array(self.img)
         # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
@@ -44,7 +49,7 @@ class Login(FramelessWindow, Main_Window):
         self.Image_label.setPixmap(pixmap)
 
     def AddLogo(self):
-        self.img = PIL.Image.open("./img/logo.jpg")
+        self.img = PIL.Image.open(config["logo"])
         self.img = self.img.resize((108,108))
         self.img = np.array(self.img)
         # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)

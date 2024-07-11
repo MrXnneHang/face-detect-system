@@ -14,6 +14,8 @@ from PyQt5.QtGui import QPixmap, QImage
 import PIL
 import numpy as np
 from time import sleep
+from util import load_config
+config = load_config()
 class Window_1(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -80,7 +82,7 @@ class Window_1(object):
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
         
-        self.img = PIL.Image.open("./img/img.jpg")
+        self.img = PIL.Image.open(config["bg2"])
         self.img = self.img.resize((521, 391))
         self.img = np.array(self.img)
         # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
