@@ -31,6 +31,7 @@ def upload_users():
     config = load_config()
     imgs_dir = config["imgs_dir"]
     imgs = os.listdir(imgs_dir)
+    imgs = [img for img in imgs if ".jpg" in img]
     img_paths = [os.path.join(imgs_dir, img) for img in imgs]
     for img_path in img_paths:
         img = Image.open(img_path)
