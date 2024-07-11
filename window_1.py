@@ -21,7 +21,7 @@ class Window_1(object):
         Form.setObjectName("Form")
         Form.resize(878, 518)
         self.label_1 = QtWidgets.QLabel(Form)
-        self.label_1.setGeometry(QtCore.QRect(660, 210, 151, 41))
+        self.label_1.setGeometry(QtCore.QRect(660, 300, 151, 41))
         font = QtGui.QFont()
         font.setPointSize(16)
         self.label_1.setFont(font)
@@ -42,6 +42,8 @@ class Window_1(object):
         self.Image_label.setGeometry(QtCore.QRect(30, 40, 521, 391))
         self.Image_label.setText("")
         self.Image_label.setObjectName("Image_label")
+        self.tixing = QtWidgets.QLabel(Form)
+        self.tixing.setGeometry(QtCore.QRect(610, 40, 220, 290)) 
         self.label_2 = QtWidgets.QLabel(Form)
         self.label_2.setGeometry(QtCore.QRect(580, 360, 51, 21))
         font = QtGui.QFont()
@@ -81,7 +83,10 @@ class Window_1(object):
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
-        
+        self.add_bijin()
+        self.add_tixing()
+
+    def add_bijin(self):
         self.img = PIL.Image.open(config["bg2"])
         self.img = self.img.resize((521, 391))
         self.img = np.array(self.img)
@@ -92,6 +97,17 @@ class Window_1(object):
         q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         self.Image_label.setPixmap(pixmap)
+    def add_tixing(self):
+        self.img = PIL.Image.open(config["bg3"])
+        self.img = self.img.resize((220, 391))
+        self.img = np.array(self.img)
+        # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        rgb_image = self.img
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img)
+        self.tixing.setPixmap(pixmap)
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate

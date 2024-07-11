@@ -264,7 +264,7 @@ class window_1(FramelessWindow, Window_1):
         # Start the camera initialization in a separate thread
         # self.camera_thread = threading.Thread(target=self.initialize_camera)
         # self.camera_thread.start()
-
+    
 
     def Close(self):
         self.close()
