@@ -13,6 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap, QImage
 import PIL
 import numpy as np
+from time import sleep
 class Window_1(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -89,8 +90,6 @@ class Window_1(object):
         q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
         self.Image_label.setPixmap(pixmap)
-
-
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
