@@ -10,8 +10,11 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from qfluentwidgets import PrimaryPushButton
-
-
+from PyQt5.QtGui import QPixmap, QImage,QIcon
+import PIL
+import numpy as np
+from util import load_config
+config = load_config()
 class Main_Window(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
@@ -61,6 +64,32 @@ class Main_Window(object):
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
+        self.Addbijin()
+        self.AddLogo()
+    # 加入背景图片
+    def Addbijin(self):
+        self.img = PIL.Image.open(config["bg1"])
+        self.img = self.img.resize((521, 391))
+        self.img = np.array(self.img)
+        # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        rgb_image = self.img
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img)
+        self.Image_label.setPixmap(pixmap)
+    # 加入logo
+    def AddLogo(self):
+        self.img = PIL.Image.open(config["logo"])
+        self.img = self.img.resize((108,108))
+        self.img = np.array(self.img)
+        # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        rgb_image = self.img
+        h, w, ch = rgb_image.shape
+        bytes_per_line = ch * w
+        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(q_img)
+        self.logo.setPixmap(pixmap)
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
