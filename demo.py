@@ -122,14 +122,14 @@ class Login(FramelessWindow, Main_Window):
             if self.resnet is not None:
                 break
             else:
-                sleep(0.2)
+                sleep(0.4)
                 print("等待模型加载..")
     def wait_camera(self):
         while True:
             if self.cap:
                 break
             else:
-                sleep(0.2)
+                sleep(0.4)
                 print("等待摄像头打开..")
     def upload_users(self):
         self.wait_load_model()
