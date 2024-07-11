@@ -6,7 +6,7 @@ from PIL import Image
 from PyQt5.QtCore import Qt, QTimer, QDateTime
 from PyQt5.QtGui import QPixmap, QImage,QIcon
 from qframelesswindow import FramelessWindow
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget,QMessageBox
 from mainwindow import Main_Window
 from window_1 import Window_1
 from delete_window import Delete_window
@@ -44,34 +44,10 @@ class Login(FramelessWindow, Main_Window):
         self.alreay_open = False
 
 
-        self.Addbijin()
-        self.AddLogo()
-    def Addbijin(self):
-        self.img = PIL.Image.open(config["bg1"])
-        self.img = self.img.resize((521, 391))
-        self.img = np.array(self.img)
-        # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        rgb_image = self.img
-        h, w, ch = rgb_image.shape
-        bytes_per_line = ch * w
-        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(q_img)
-        self.Image_label.setPixmap(pixmap)
 
-    def AddLogo(self):
-        self.img = PIL.Image.open(config["logo"])
-        self.img = self.img.resize((108,108))
-        self.img = np.array(self.img)
-        # rgb_image = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        rgb_image = self.img
-        h, w, ch = rgb_image.shape
-        bytes_per_line = ch * w
-        q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        pixmap = QPixmap.fromImage(q_img)
-        self.logo.setPixmap(pixmap)
     def initialize_camera(self):
         self.cap = cv2.VideoCapture(0)
-        sleep(2)  # Add a small delay to ensure the camera is initialized
+        # sleep(2)  # Add a small delay to ensure the camera is initialized
     def initialize_model(self):
         config = load_config()
         device = config["device"]
@@ -133,10 +109,8 @@ class Login(FramelessWindow, Main_Window):
         event.accept()
 
     def showWindow1(self):
-        # if self.cap:
-        #     self.stopCamera()
-        #     sleep(0.2)
         w_1 = window_1(self.cap)
+        sleep(1)
         w_1.show()
 
     def showWindow2(self):
@@ -188,7 +162,6 @@ class Login(FramelessWindow, Main_Window):
         data_features = [torch.tensor(users[i]["features"]).to(self.device) for i in range(len(users))]
 
         while True:
-            self.wait_camera()
             ret, frame = self.cap.read()
             if not ret:
                 print("Failed to grab frame")
@@ -261,12 +234,21 @@ class window_1(FramelessWindow, Window_1):
         
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
-        # Start the camera initialization in a separate thread
-        # self.camera_thread = threading.Thread(target=self.initialize_camera)
-        # self.camera_thread.start()
-    
+        self.close_window = 0
+        # self.debug_timer = QTimer()
+        # self.debug_timer.timeout.connect(self.debug)
+        # self.debug_timer.start(5)
+        # 很神奇如果进入这个window后不读摄像机，就会秒关闭。但是一直读就不会关闭。
+        self.debug_thread = threading.Thread(target=self.debug)
+        self.debug_thread.start()
 
+    def debug(self):
+        while not self.close_window:
+            self.camera.read()
+            sleep(0.2)
     def Close(self):
+        self.close_window=1
+        sleep(0.3)
         self.close()
     def Open(self): 
         self.show()
@@ -291,20 +273,11 @@ class window_1(FramelessWindow, Window_1):
         os.rename(original_path, new_path)
         self.label_1.setText("录入成功！")
     
-    def initialize_camera(self):
-        self.camera = cv2.VideoCapture(0)
-        sleep(2)  # Add a small delay to ensure the camera is initialized
 
     def start_camera(self):
         self.timer.start(20)  # 以大约50fps的速度更新画面
 
     def update_frame(self):
-        while True:
-            if self.camera:
-                break
-            else:
-                sleep(0.2)
-                print("等待摄像头打开...")
         ret, frame = self.camera.read()
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -322,8 +295,6 @@ class window_1(FramelessWindow, Window_1):
 
     def closeEvent(self, event):
         self.timer.stop()
-        # if self.camera:
-        #     self.camera.release()
         super().closeEvent(event)
 
 class delete_window(FramelessWindow, Delete_window):
