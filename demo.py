@@ -34,6 +34,7 @@ class Login(FramelessWindow, Main_Window):
         self.Button4.clicked.connect(self.on_button2_click)
         self.stop_detection = threading.Event()
         self.cap = None
+        self.Number = 0
         self.resnet = None
         # Start the camera initialization in a separate thread
         self.camera_thread = threading.Thread(target=self.initialize_camera)
@@ -162,10 +163,15 @@ class Login(FramelessWindow, Main_Window):
         data_features = [torch.tensor(users[i]["features"]).to(self.device) for i in range(len(users))]
 
         while True:
+            self.Number+=1
             ret, frame = self.cap.read()
             if not ret:
                 print("Failed to grab frame")
                 break
+            if self.Number%10 == 0:
+                users = read_users_from_database()
+                data_features = [torch.tensor(users[i]["features"]).to(self.device) for i in range(len(users))]
+
 
             img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             pil_img = Image.fromarray(img)
